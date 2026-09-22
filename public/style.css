@@ -113,6 +113,14 @@ body{
 .next-session-card .ns-label{ font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-dim); font-weight:700; }
 .next-session-card .ns-title{ font-family: var(--font-display); font-size: 20px; font-weight:700; margin: 4px 0; }
 .next-session-card .ns-date{ font-size: 13px; color: var(--text-dim); }
+.ns-actions{ display:flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+.ns-actions button{ font-size: 12px; padding: 8px 14px; }
+.ns-postpone-box{ display:none; gap: 8px; margin-top: 10px; align-items:center; }
+.ns-postpone-box.show{ display:flex; }
+.ns-postpone-box input{
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 8px;
+  padding: 8px 10px; font-size: 13px; font-family: var(--font-body);
+}
 
 /* ===== OBJECTIFS ===== */
 .goal-card{ background: var(--panel-alt); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; cursor:pointer; }
