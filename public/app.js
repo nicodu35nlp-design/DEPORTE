@@ -103,11 +103,21 @@ function renderDashboard() {
   const box = $("#next-session-box");
   if (next) {
     box.innerHTML = `
-      <div class="next-session-card">
+      <div class="next-session-card" data-id="${next.id}">
         <div class="ns-label">Prochaine séance</div>
         <div class="ns-title">${escapeHtml(next.title || catLabel(next.category))}</div>
         <div class="ns-date">${fmtDate(next.date)} · ${(next.exercises || []).length} exercice${(next.exercises || []).length > 1 ? "s" : ""}</div>
+        <div class="ns-actions">
+          <button class="btn-accent" data-action="done">✅ Effectuée</button>
+          <button class="btn-ghost" data-action="postpone">📅 Reporter</button>
+          <button class="btn-ghost" data-action="cancel">❌ Annuler</button>
+        </div>
+        <div class="ns-postpone-box" id="ns-postpone-box">
+          <input type="date" id="ns-postpone-date" value="${next.date}" />
+          <button class="btn-accent" id="ns-postpone-confirm">Valider</button>
+        </div>
       </div>`;
+    bindNextSessionActions(next.id);
   } else {
     box.innerHTML = `<div class="empty-state">Aucune séance planifiée pour l'instant.</div>`;
   }
@@ -146,6 +156,32 @@ function escapeHtml(str) {
   const d = document.createElement("div");
   d.textContent = str || "";
   return d.innerHTML;
+}
+
+function bindNextSessionActions(sessionId) {
+  const card = $(".next-session-card");
+  if (!card) return;
+  card.querySelector('[data-action="done"]').addEventListener("click", async () => {
+    try { await sessionApi.update({ id: sessionId, status: "faite" }); toast("Séance marquée effectuée 🎉"); await loadAll(); }
+    catch (err) { console.error(err); toast("Erreur"); }
+  });
+  card.querySelector('[data-action="cancel"]').addEventListener("click", async () => {
+    if (!confirm("Annuler cette séance ?")) return;
+    try { await sessionApi.update({ id: sessionId, status: "annulee" }); toast("Séance annulée"); await loadAll(); }
+    catch (err) { console.error(err); toast("Erreur"); }
+  });
+  card.querySelector('[data-action="postpone"]').addEventListener("click", () => {
+    card.querySelector("#ns-postpone-box").classList.toggle("show");
+  });
+  card.querySelector("#ns-postpone-confirm").addEventListener("click", async () => {
+    const newDate = card.querySelector("#ns-postpone-date").value;
+    if (!newDate) return;
+    try {
+      await sessionApi.update({ id: sessionId, date: newDate, notified_22h: false, notified_8h: false });
+      toast("Séance reportée");
+      await loadAll();
+    } catch (err) { console.error(err); toast("Erreur"); }
+  });
 }
 
 /* ============ OBJECTIFS ============ */
