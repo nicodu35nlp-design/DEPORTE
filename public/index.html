@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FitStart — Suivi sportif</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#2FAE60" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <header class="header">
+    <div class="brand">
+      <div class="brand-badge"></div>
+      <h1 class="brand-title">FitStart</h1>
+    </div>
+    <button class="notif-btn" id="notif-btn">🔔 Activer les rappels</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-view="dashboard">Dashboard</button>
+    <button class="tab" data-view="objectifs">Objectifs</button>
+    <button class="tab" data-view="calendrier">Calendrier</button>
+    <button class="tab" data-view="exercices">Exercices</button>
+  </nav>
+
+  <main class="views">
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="view active" id="view-dashboard">
+      <div id="next-session-box"></div>
+      <div class="stat-row" id="dash-stats"></div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Objectifs en cours</h2>
+          <button class="link-btn" data-goto="objectifs">Voir tout →</button>
+        </div>
+        <div id="dash-goals"></div>
+      </div>
+    </section>
+
+    <!-- ===== OBJECTIFS ===== -->
+    <section class="view" id="view-objectifs">
+      <div class="panel-head">
+        <h2>Objectifs</h2>
+        <button class="btn-accent" id="btn-new-goal">+ Nouvel objectif</button>
+      </div>
+      <div id="goals-list"></div>
+    </section>
+
+    <!-- ===== CALENDRIER ===== -->
+    <section class="view" id="view-calendrier">
+      <div class="panel-head">
+        <h2>Calendrier</h2>
+        <button class="btn-accent" id="btn-new-session">+ Planifier une séance</button>
+      </div>
+      <div class="planning-controls">
+        <div class="view-toggle" id="planning-toggle">
+          <button class="active" data-mode="week">Semaine</button>
+          <button data-mode="month">Mois</button>
+        </div>
+        <div class="date-nav">
+          <button id="nav-prev">‹</button>
+          <span class="date-label" id="nav-label">—</span>
+          <button id="nav-next">›</button>
+          <button class="today-btn" id="nav-today">Aujourd'hui</button>
+        </div>
+      </div>
+      <div id="planning-week" class="week-grid"></div>
+      <div id="planning-month" class="month-grid" style="display:none"></div>
+    </section>
+
+    <!-- ===== EXERCICES ===== -->
+    <section class="view" id="view-exercices">
+      <div class="panel-head">
+        <h2>Bibliothèque d'exercices</h2>
+        <button class="btn-accent pink" id="btn-new-exercise">+ Ajouter un exercice</button>
+      </div>
+      <div class="category-chips" id="exercise-category-chips">
+        <button class="chip active" data-cat="all">Tout</button>
+      </div>
+      <div class="exercise-grid" id="exercise-grid"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== MODALE DÉTAIL EXERCICE ===== -->
+<div class="modal-backdrop" id="exercise-modal-backdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="exercise-modal-title">Exercice</h3>
+      <button type="button" class="modal-close" id="exercise-modal-close">×</button>
+    </div>
+    <div class="silhouette-toggle">
+      <button type="button" class="active" data-side="front">Devant</button>
+      <button type="button" data-side="back">Derrière</button>
+    </div>
+    <div class="silhouette-box" id="exercise-silhouette"></div>
+    <div class="legend-row">
+      <span><span class="zone-dot rouge"></span> Très sollicité</span>
+      <span><span class="zone-dot orange"></span> Moyen</span>
+      <span><span class="zone-dot vert"></span> Léger</span>
+    </div>
+    <p id="exercise-equip" style="font-size:12px; color:var(--text-dim); font-weight:600; margin:0 0 6px;"></p>
+    <p id="exercise-description" style="font-size:14px; line-height:1.5; margin:0 0 12px;"></p>
+    <a id="exercise-video-link" href="#" target="_blank" rel="noopener" class="btn-accent pink" style="display:none; text-decoration:none; text-align:center; margin-bottom:10px;">▶ Voir le tuto</a>
+    <div id="exercise-custom-actions" style="display:none; gap:8px; margin-top:10px;">
+      <button type="button" class="btn-ghost" id="exercise-edit-custom">✏️ Modifier</button>
+      <button type="button" class="btn-ghost" id="exercise-delete-custom">🗑️ Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALE NOUVEL EXERCICE (personnalisé) ===== -->
+<div class="modal-backdrop" id="custom-exercise-modal-backdrop">
+  <form class="modal" id="custom-exercise-form">
+    <div class="modal-head">
+      <h3 id="ce-modal-title">Nouvel exercice</h3>
+      <button type="button" class="modal-close" id="ce-modal-close">×</button>
+    </div>
+    <input type="hidden" id="ce-id" />
+    <label class="field-full">Nom
+      <input type="text" id="ce-name" placeholder="Ex : Soulevé de terre roumain" required />
+    </label>
+    <label class="field-full">Catégorie
+      <div class="category-chips" id="ce-category-chips"></div>
+    </label>
+    <div class="field-row">
+      <label>Équipement
+        <input type="text" id="ce-equip" placeholder="Ex : Haltères" />
+      </label>
+      <label>Vidéo (optionnel)
+        <input type="text" id="ce-video" placeholder="Lien YouTube" />
+      </label>
+    </div>
+    <label class="field-full">Description
+      <textarea id="ce-desc" rows="2" placeholder="Comment le réaliser..."></textarea>
+    </label>
+    <label class="field-full">Suivi chiffré
+      <div class="view-toggle" id="ce-tracking-toggle">
+        <button type="button" data-tracking="" class="active">Aucun</button>
+        <button type="button" data-tracking="duration">Minutes</button>
+        <button type="button" data-tracking="duration_distance">Minutes + km</button>
+      </div>
+    </label>
+    <label class="field-full">Zones du corps sollicitées (clique pour changer l'intensité)
+      <div class="zone-picker" id="ce-zone-picker"></div>
+    </label>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="ce-btn-delete" style="display:none">Supprimer</button>
+      <div class="modal-actions-right">
+        <button type="button" class="btn-ghost" id="ce-modal-cancel">Annuler</button>
+        <button type="submit" class="btn-accent">Enregistrer</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- ===== MODALE OBJECTIF ===== -->
+<div class="modal-backdrop" id="goal-modal-backdrop">
+  <form class="modal" id="goal-form">
+    <div class="modal-head">
+      <h3 id="goal-modal-title">Nouvel objectif</h3>
+      <button type="button" class="modal-close" id="goal-modal-close">×</button>
+    </div>
+    <input type="hidden" id="go-id" />
+    <label class="field-full">Titre
+      <input type="text" id="go-title" placeholder="Ex : 3 séances par semaine" required />
+    </label>
+    <label class="field-full">Description
+      <textarea id="go-desc" rows="2" placeholder="Détails, pourquoi cet objectif..."></textarea>
+    </label>
+    <label class="field-full">Échéance
+      <div class="view-toggle" id="goal-date-mode">
+        <button type="button" data-mode="aucune" class="active">Aucune</button>
+        <button type="button" data-mode="periode">Période</button>
+        <button type="button" data-mode="date">Date précise</button>
+      </div>
+    </label>
+    <div class="field-row" id="goal-date-periode" style="display:none">
+      <label>Du
+        <input type="date" id="go-start-date" />
+      </label>
+      <label>Au
+        <input type="date" id="go-end-date" />
+      </label>
+    </div>
+    <label class="field-full" id="goal-date-precise" style="display:none">Date
+      <input type="date" id="go-target-date" />
+    </label>
+    <div class="field-row">
+      <label>Valeur cible (optionnel)
+        <input type="number" step="1" min="0" id="go-target" placeholder="Ex : 12" />
+      </label>
+      <label>Valeur actuelle
+        <input type="number" step="1" min="0" id="go-current" placeholder="Ex : 3" />
+      </label>
+    </div>
+    <label class="field-full">Difficulté ressentie
+      <div class="view-toggle" id="goal-difficulty-toggle">
+        <button type="button" data-diff="facile">Facile</button>
+        <button type="button" data-diff="moyen">Moyen</button>
+        <button type="button" data-diff="difficile">Difficile</button>
+      </div>
+    </label>
+    <label class="field-full">Statut
+      <div class="view-toggle" id="goal-status-toggle">
+        <button type="button" data-done="false" class="active">En cours</button>
+        <button type="button" data-done="true">Atteint 🏆</button>
+      </div>
+    </label>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="goal-btn-delete" style="display:none">Supprimer</button>
+      <div class="modal-actions-right">
+        <button type="button" class="btn-ghost" id="goal-modal-cancel">Annuler</button>
+        <button type="submit" class="btn-accent">Enregistrer</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- ===== MODALE SÉANCE ===== -->
+<div class="modal-backdrop" id="session-modal-backdrop">
+  <form class="modal" id="session-form">
+    <div class="modal-head">
+      <h3 id="session-modal-title">Nouvelle séance</h3>
+      <button type="button" class="modal-close" id="session-modal-close">×</button>
+    </div>
+    <input type="hidden" id="se-id" />
+    <label class="field-full">Statut
+      <div class="view-toggle" id="session-status-toggle">
+        <button type="button" data-status="planifiee" class="active">Planifiée</button>
+        <button type="button" data-status="faite">Effectuée ✅</button>
+      </div>
+    </label>
+    <div class="field-row">
+      <label>Date
+        <input type="date" id="se-date" required />
+      </label>
+      <label>Titre
+        <input type="text" id="se-title" placeholder="Ex : Séance jambes" />
+      </label>
+    </div>
+    <label class="field-full">Type de séance
+      <div class="category-chips" id="session-category-chips"></div>
+    </label>
+    <div class="redundancy-warning" id="redundancy-warning"></div>
+    <label class="field-full">Exercices
+      <div id="session-exercise-list"></div>
+    </label>
+    <label class="field-full">Notes
+      <textarea id="se-notes" rows="2" placeholder="Sensations, contexte..."></textarea>
+    </label>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="session-btn-delete" style="display:none">Supprimer</button>
+      <div class="modal-actions-right">
+        <button type="button" class="btn-ghost" id="session-modal-cancel">Annuler</button>
+        <button type="submit" class="btn-accent">Enregistrer</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="exercises.js"></script>
+<script src="silhouette.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
