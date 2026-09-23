@@ -235,6 +235,18 @@ body{
 .zone-btn[data-intensity="orange"]{ background: rgba(255,169,77,0.18); border-color: var(--orange-zone); color:#8a5a12; }
 .zone-btn[data-intensity="vert"]{ background: rgba(47,174,96,0.15); border-color: var(--green-zone); color: var(--green-dark); }
 
+.program-card{
+  background: var(--panel-alt); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 10px; cursor:pointer; transition: border-color .15s;
+}
+.program-card:hover{ border-color: var(--pink); }
+.program-card.recommended{ border-color: var(--pink); background: var(--pink-soft); }
+.program-card .pg-name{ font-weight:700; font-size: 15px; }
+.program-card .pg-freq{ font-size: 11px; color: var(--pink-dark); font-weight:700; text-transform:uppercase; letter-spacing:.4px; margin-top:2px; }
+.program-card .pg-desc{ font-size: 13px; color: var(--text-dim); margin-top: 6px; }
+.program-card .pg-days{ font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+.program-card .pg-days b{ color: var(--green-dark); }
+
 /* ===== MODAL ===== */
 .modal-backdrop{
   display:none; position: fixed; inset:0; background: rgba(20,40,25,0.45);
