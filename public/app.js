@@ -45,12 +45,17 @@ function allExercises() {
   return EXERCISES.concat(customExercises.map((e) => ({ ...e, isCustom: true })));
 }
 function exerciseById(id) { return allExercises().find((e) => e.id === id); }
-function toast(msg) {
+function toast(msg, undoFn) {
   const t = $("#toast");
-  t.textContent = msg;
+  if (undoFn) {
+    t.innerHTML = `${msg} <button id="toast-undo-btn" style="margin-left:8px; background:none; border:none; color:var(--pink); font-weight:700; cursor:pointer; text-decoration:underline; font-size:13px;">Annuler</button>`;
+    $("#toast-undo-btn").addEventListener("click", () => { t.classList.remove("show"); undoFn(); });
+  } else {
+    t.textContent = msg;
+  }
   t.classList.add("show");
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.classList.remove("show"), 2200);
+  toast._t = setTimeout(() => t.classList.remove("show"), undoFn ? 5000 : 2200);
 }
 
 /* ============ API ============ */
@@ -98,7 +103,7 @@ $$(".link-btn[data-goto]").forEach((btn) => btn.addEventListener("click", () => 
 /* ============ DASHBOARD ============ */
 function renderDashboard() {
   const today = isoToday();
-  const upcoming = sessions.filter((s) => s.date >= today && s.status !== "annulee").sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = sessions.filter((s) => s.date >= today && s.status === "planifiee").sort((a, b) => a.date.localeCompare(b.date));
   const next = upcoming[0];
   const box = $("#next-session-box");
   if (next) {
@@ -158,17 +163,38 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+async function updateSessionOptimistic(id, changes) {
+  const idx = sessions.findIndex((s) => s.id === id);
+  const previous = idx > -1 ? { ...sessions[idx] } : null;
+  if (idx > -1) sessions[idx] = { ...sessions[idx], ...changes };
+  renderAll();
+  try {
+    await sessionApi.update({ id, ...changes });
+  } catch (err) {
+    console.error(err);
+    if (previous && idx > -1) sessions[idx] = previous;
+    renderAll();
+    toast("Erreur, réessaie");
+    throw err;
+  }
+}
+
 function bindNextSessionActions(sessionId) {
   const card = $(".next-session-card");
   if (!card) return;
   card.querySelector('[data-action="done"]').addEventListener("click", async () => {
-    try { await sessionApi.update({ id: sessionId, status: "faite" }); toast("Séance marquée effectuée 🎉"); await loadAll(); }
-    catch (err) { console.error(err); toast("Erreur"); }
+    try {
+      await updateSessionOptimistic(sessionId, { status: "faite" });
+      toast("Séance marquée effectuée 🎉 (+15 pts)", async () => {
+        try { await updateSessionOptimistic(sessionId, { status: "planifiee" }); toast("Validation annulée"); }
+        catch (e) { /* déjà géré dans updateSessionOptimistic */ }
+      });
+    } catch (e) { /* déjà géré dans updateSessionOptimistic */ }
   });
   card.querySelector('[data-action="cancel"]').addEventListener("click", async () => {
     if (!confirm("Annuler cette séance ?")) return;
-    try { await sessionApi.update({ id: sessionId, status: "annulee" }); toast("Séance annulée"); await loadAll(); }
-    catch (err) { console.error(err); toast("Erreur"); }
+    try { await updateSessionOptimistic(sessionId, { status: "annulee" }); toast("Séance annulée"); }
+    catch (e) { /* déjà géré dans updateSessionOptimistic */ }
   });
   card.querySelector('[data-action="postpone"]').addEventListener("click", () => {
     card.querySelector("#ns-postpone-box").classList.toggle("show");
@@ -177,10 +203,9 @@ function bindNextSessionActions(sessionId) {
     const newDate = card.querySelector("#ns-postpone-date").value;
     if (!newDate) return;
     try {
-      await sessionApi.update({ id: sessionId, date: newDate, notified_22h: false, notified_8h: false });
+      await updateSessionOptimistic(sessionId, { date: newDate, notified_22h: false, notified_8h: false });
       toast("Séance reportée");
-      await loadAll();
-    } catch (err) { console.error(err); toast("Erreur"); }
+    } catch (e) { /* déjà géré dans updateSessionOptimistic */ }
   });
 }
 
@@ -637,6 +662,123 @@ $("#notif-btn").addEventListener("click", async () => {
   } catch (err) {
     console.error(err);
     toast("Impossible d'activer les rappels");
+  }
+});
+
+/* ============ PROGRAMMES ============ */
+const programBackdrop = $("#program-list-modal-backdrop");
+const setupBackdrop = $("#program-setup-modal-backdrop");
+const setupForm = $("#program-setup-form");
+let selectedProgram = null;
+let selectedDays = new Set(); // indices 0=Lun..6=Dim
+
+function programCardHTML(pg) {
+  const daysLabels = pg.days.map((k) => DAY_TEMPLATES[k].label).join(" → ");
+  return `
+    <div class="program-card ${pg.recommended ? "recommended" : ""}" data-id="${pg.id}">
+      <div class="pg-name">${pg.name}</div>
+      <div class="pg-freq">${pg.frequency} jour${pg.frequency > 1 ? "s" : ""} / semaine</div>
+      <div class="pg-desc">${pg.description}</div>
+      <div class="pg-days"><b>Cycle :</b> ${daysLabels}</div>
+    </div>`;
+}
+function openProgramList() {
+  $("#program-list").innerHTML = PROGRAMS.map(programCardHTML).join("");
+  $("#program-list").querySelectorAll(".program-card").forEach((el) => {
+    el.addEventListener("click", () => openProgramSetup(el.dataset.id));
+  });
+  programBackdrop.classList.add("open");
+}
+$("#btn-open-programs").addEventListener("click", openProgramList);
+$("#program-list-close").addEventListener("click", () => programBackdrop.classList.remove("open"));
+programBackdrop.addEventListener("click", (e) => { if (e.target === programBackdrop) programBackdrop.classList.remove("open"); });
+
+function openProgramSetup(programId) {
+  selectedProgram = PROGRAMS.find((p) => p.id === programId);
+  if (!selectedProgram) return;
+  selectedDays = new Set();
+  programBackdrop.classList.remove("open");
+  $("#program-setup-title").textContent = selectedProgram.name;
+  $("#program-setup-desc").textContent = `Coche exactement ${selectedProgram.frequency} jour${selectedProgram.frequency > 1 ? "s" : ""} disponible${selectedProgram.frequency > 1 ? "s" : ""} — le cycle ${selectedProgram.days.map((k) => DAY_TEMPLATES[k].label).join(" → ")} tournera dessus chaque semaine.`;
+  $("#program-days-label").textContent = `Jours disponibles (${selectedProgram.frequency} requis)`;
+  $$("#program-day-picker .chip").forEach((c) => c.classList.remove("active"));
+  $("#program-start-date").value = isoToday();
+  $("#program-weeks").value = 4;
+  setupBackdrop.classList.add("open");
+}
+$("#program-day-picker").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  const day = chip.dataset.day;
+  if (selectedDays.has(day)) selectedDays.delete(day); else selectedDays.add(day);
+  chip.classList.toggle("active", selectedDays.has(day));
+});
+$("#program-setup-close").addEventListener("click", () => setupBackdrop.classList.remove("open"));
+$("#program-setup-cancel").addEventListener("click", () => setupBackdrop.classList.remove("open"));
+setupBackdrop.addEventListener("click", (e) => { if (e.target === setupBackdrop) setupBackdrop.classList.remove("open"); });
+
+setupForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (selectedDays.size !== selectedProgram.frequency) {
+    toast(`Coche exactement ${selectedProgram.frequency} jour${selectedProgram.frequency > 1 ? "s" : ""}`);
+    return;
+  }
+  const startDate = new Date($("#program-start-date").value + "T00:00:00");
+  const weeks = parseInt($("#program-weeks").value, 10) || 4;
+  const dayIndices = Array.from(selectedDays).map(Number).sort((a, b) => a - b);
+  const weekStart = startOfWeek(startDate);
+
+  // construit la liste (date, templateKey) sur N semaines, jours triés Lun->Dim
+  const plan = [];
+  let dayCursor = 0;
+  for (let w = 0; w < weeks; w++) {
+    for (const dayIdx of dayIndices) {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + w * 7 + dayIdx);
+      if (d < startDate) continue; // ne génère pas avant la date de début choisie
+      const templateKey = selectedProgram.days[dayCursor % selectedProgram.days.length];
+      plan.push({ date: toISO(d), templateKey });
+      dayCursor++;
+    }
+  }
+
+  // conflits avec des séances déjà existantes
+  const conflicts = plan.filter((item) => sessionsOnDate(item.date).length > 0);
+  if (conflicts.length > 0) {
+    const ok = confirm(`${conflicts.length} jour(s) ont déjà une séance prévue. Les remplacer par le programme ?`);
+    if (!ok) return;
+  }
+
+  // supprime les séances en conflit (local + serveur)
+  for (const item of conflicts) {
+    const existing = sessionsOnDate(item.date);
+    for (const ex of existing) {
+      sessions = sessions.filter((s) => s.id !== ex.id);
+      sessionApi.delete(ex.id).catch((err) => console.error(err));
+    }
+  }
+
+  // crée les nouvelles séances (optimiste : affichage immédiat, sauvegarde en tâche de fond)
+  const created = [];
+  for (const item of plan) {
+    const tpl = DAY_TEMPLATES[item.templateKey];
+    const id = crypto.randomUUID();
+    const exerciseData = {};
+    if (tpl.tracking) Object.entries(tpl.tracking).forEach(([exId, vals]) => { exerciseData[exId] = { ...vals }; });
+    const newSession = {
+      id, date: item.date, title: tpl.label, category: tpl.category,
+      exercises: [...tpl.exercises], exerciseData, notes: `Généré par le programme "${selectedProgram.name}"`,
+      status: "planifiee",
+    };
+    sessions.push(newSession);
+    created.push(newSession);
+  }
+  renderAll();
+  setupBackdrop.classList.remove("open");
+  toast(`${created.length} séances créées 🎉`);
+
+  for (const s of created) {
+    try { await sessionApi.create(s); } catch (err) { console.error("Erreur création séance programme", err); }
   }
 });
 
