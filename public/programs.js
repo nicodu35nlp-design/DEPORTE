@@ -38,23 +38,23 @@ const DAY_TEMPLATES = {
 
 const PROGRAMS = [
   {
-    id: "perte-poids-2j",
-    name: "Perte de poids — 2 jours/semaine",
+    id: "full-2j",
+    name: "Full sur 2 jours",
     frequency: 2,
     description: "Pour démarrer en douceur ou un emploi du temps chargé.",
     days: ["full_body", "jambes_cardio"],
   },
   {
-    id: "perte-poids-3j",
-    name: "Perte de poids — 3 jours/semaine ⭐ (recommandé)",
+    id: "full-3j",
+    name: "Full sur 3 jours ⭐ (recommandé)",
     frequency: 3,
-    description: "Le bon équilibre régularité/récupération pour un objectif de 4-5 kg sur plusieurs mois.",
+    description: "Le bon équilibre régularité/récupération pour progresser sur la durée.",
     days: ["full_body", "cardio_abdos", "fessiers_jambes"],
     recommended: true,
   },
   {
-    id: "perte-poids-4j",
-    name: "Perte de poids — 4 jours/semaine",
+    id: "full-4j",
+    name: "Full sur 4 jours",
     frequency: 4,
     description: "Pour qui a plus de disponibilités, avec un jour dédié au haut du corps.",
     days: ["full_body", "cardio_abdos", "fessiers_jambes", "cardio_haut_leger"],
