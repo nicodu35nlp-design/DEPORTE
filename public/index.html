@@ -59,7 +59,10 @@
     <section class="view" id="view-calendrier">
       <div class="panel-head">
         <h2>Calendrier</h2>
-        <button class="btn-accent" id="btn-new-session">+ Planifier une séance</button>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-accent pink" id="btn-open-programs">🚀 Suivre un programme</button>
+          <button class="btn-accent" id="btn-new-session">+ Planifier une séance</button>
+        </div>
       </div>
       <div class="planning-controls">
         <div class="view-toggle" id="planning-toggle">
@@ -117,6 +120,57 @@
       <button type="button" class="btn-ghost" id="exercise-delete-custom">🗑️ Supprimer</button>
     </div>
   </div>
+</div>
+
+<!-- ===== MODALE CHOIX DU PROGRAMME ===== -->
+<div class="modal-backdrop" id="program-list-modal-backdrop">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-head">
+      <h3>Choisir un programme</h3>
+      <button type="button" class="modal-close" id="program-list-close">×</button>
+    </div>
+    <div id="program-list"></div>
+    <div class="redundancy-warning show" style="margin-top:14px; background: rgba(47,174,96,0.12); border-color: var(--green); color: var(--green-dark);">
+      💡 Dès que la reprise de la course sera possible (avis médical), pense à ajouter une séance de course en plus, directement dans le Calendrier.
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALE CONFIGURATION DU PROGRAMME ===== -->
+<div class="modal-backdrop" id="program-setup-modal-backdrop">
+  <form class="modal" id="program-setup-form">
+    <div class="modal-head">
+      <h3 id="program-setup-title">Configurer le programme</h3>
+      <button type="button" class="modal-close" id="program-setup-close">×</button>
+    </div>
+    <p id="program-setup-desc" style="font-size:13px; color:var(--text-dim); margin:0 0 14px;"></p>
+    <label class="field-full">
+      <span id="program-days-label">Jours disponibles</span>
+      <div class="category-chips" id="program-day-picker">
+        <button type="button" class="chip" data-day="0">Lun</button>
+        <button type="button" class="chip" data-day="1">Mar</button>
+        <button type="button" class="chip" data-day="2">Mer</button>
+        <button type="button" class="chip" data-day="3">Jeu</button>
+        <button type="button" class="chip" data-day="4">Ven</button>
+        <button type="button" class="chip" data-day="5">Sam</button>
+        <button type="button" class="chip" data-day="6">Dim</button>
+      </div>
+    </label>
+    <div class="field-row">
+      <label>Date de début
+        <input type="date" id="program-start-date" required />
+      </label>
+      <label>Durée (semaines)
+        <input type="number" id="program-weeks" min="1" max="26" value="4" required />
+      </label>
+    </div>
+    <div class="modal-actions">
+      <div class="modal-actions-right" style="margin-left:auto;">
+        <button type="button" class="btn-ghost" id="program-setup-cancel">Annuler</button>
+        <button type="submit" class="btn-accent pink">Générer le programme</button>
+      </div>
+    </div>
+  </form>
 </div>
 
 <!-- ===== MODALE NOUVEL EXERCICE (personnalisé) ===== -->
@@ -272,6 +326,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="exercises.js"></script>
+<script src="programs.js"></script>
 <script src="silhouette.js"></script>
 <script src="app.js"></script>
 </body>
